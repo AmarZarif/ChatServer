@@ -8,6 +8,13 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * ChatServer - Project 4
+ *
+ * @author Muhammad Raziq Raif Ramli, mramli@purdue.edu
+ * @author Amar Zarif Azamin, aazamin@purdue.edu
+ * @version 11/26/2018
+ */
 final class ChatServer {
     private static int uniqueId = 0;
     private final List<ClientThread> clients = new ArrayList<>();
@@ -18,29 +25,24 @@ final class ChatServer {
         this.port = port;
     }
 
-    public ChatServer() {
-        this (1500);
-    }
-
     /*
      * This is what starts the ChatServer.
      * Right now it just creates the socketServer and adds a new ClientThread to a list to be handled
      */
     private void start() {
-        try {
-            ServerSocket serverSocket = new ServerSocket(port);
-            while (true) {
-                Socket socket = serverSocket.accept();
 
-                Runnable r = new ClientThread(socket, uniqueId++);
-                Thread t = new Thread(r);
-                clients.add((ClientThread) r);
-                t.start();
-
+            try {
+                ServerSocket serverSocket = new ServerSocket(port);
+                while (true) {
+                    Socket socket = serverSocket.accept();
+                    Runnable r = new ClientThread(socket, uniqueId++);
+                    Thread t = new Thread(r);
+                    clients.add((ClientThread) r);
+                    t.start();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     /*
@@ -98,11 +100,6 @@ final class ChatServer {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
-
-        private boolean writeMessage (String msg){
-
-            return true;
         }
     }
 }
