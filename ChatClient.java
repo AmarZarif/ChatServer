@@ -4,6 +4,13 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.Scanner;
 
+/**
+ * ChatClient - Project 4
+ *
+ * @author Muhammad Raziq Raif Ramli, mramli@purdue.edu
+ * @author Amar Zarif Azamin, aazamin@purdue.edu
+ * @version 11/26/2018
+ */
 final class ChatClient {
     private ObjectInputStream sInput;
     private ObjectOutputStream sOutput;
@@ -17,18 +24,6 @@ final class ChatClient {
         this.server = server;
         this.port = port;
         this.username = username;
-    }
-
-    public ChatClient() {
-        this ("Anonymous");
-    }
-
-    public ChatClient(String username) {
-        this(username,1500);
-    }
-
-    public ChatClient(String username, int port) {
-        this(username,port,"localhost");
     }
 
     /*
@@ -90,16 +85,47 @@ final class ChatClient {
      * If the username is not specified "Anonymous" should be used
      */
     public static void main(String[] args) {
+        ChatClient client;
         // Get proper arguments and override defaults
-
-        // Create your client and start it
-        ChatClient client = new ChatClient("localhost", 1500, "CS 180 Student");
+        if (args.length == 3) {
+            // Create your client and start it
+            client = new ChatClient(args[2], Integer.parseInt(args[1]), args[0]);
+        } else if (args.length == 2) {
+            client = new ChatClient("localhost", Integer.parseInt(args[1]), args[0]);
+        } else if (args.length == 1) {
+            client = new ChatClient("localhost", 1500, args[0]);
+        } else {
+            client = new ChatClient("localhost", 1500, "Anonymous");
+        }
         client.start();
-
-        Scanner s = new Scanner(System.in);
-
+        String s = "/fasdf";
+        System.out.println(s.toLowerCase());
         // Send an empty message to the server
-        client.sendMessage(new ChatMessage(0,"kol"));
+        while (true) {
+            Scanner scanner = new Scanner(System.in);
+            System.out.println("Enter a message: ");
+            String message = scanner.nextLine();
+            if (message.toLowerCase().equals("/logout")) {
+                try {
+                    client.socket.close();
+                } catch (IOException ioe) {
+                    System.out.println("IOExeption when closing socket");
+                }
+                try {
+                    client.sInput.close();
+                } catch (IOException ioe) {
+                    System.out.println("IOExeption when closing Object Input Stream");
+                }
+                try {
+                    client.sOutput.close();
+                } catch (IOException ioe) {
+                    System.out.println("IOExeption when closing Object Output Stream");
+                }
+            }
+
+            client.sendMessage(new ChatMessage());
+        }
+
     }
 
 
@@ -110,11 +136,13 @@ final class ChatClient {
      */
     private final class ListenFromServer implements Runnable {
         public void run() {
-            try {
-                String msg = (String) sInput.readObject();
-                System.out.print(msg);
-            } catch (IOException | ClassNotFoundException e) {
-                e.printStackTrace();
+            while (true) {
+                try {
+                    String msg = (String) sInput.readObject();
+                    System.out.print(msg);
+                } catch (IOException | ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
