@@ -18,6 +18,10 @@ final class ChatServer {
         this.port = port;
     }
 
+    public ChatServer() {
+        this (1500);
+    }
+
     /*
      * This is what starts the ChatServer.
      * Right now it just creates the socketServer and adds a new ClientThread to a list to be handled
@@ -25,11 +29,15 @@ final class ChatServer {
     private void start() {
         try {
             ServerSocket serverSocket = new ServerSocket(port);
-            Socket socket = serverSocket.accept();
-            Runnable r = new ClientThread(socket, uniqueId++);
-            Thread t = new Thread(r);
-            clients.add((ClientThread) r);
-            t.start();
+            while (true) {
+                Socket socket = serverSocket.accept();
+
+                Runnable r = new ClientThread(socket, uniqueId++);
+                Thread t = new Thread(r);
+                clients.add((ClientThread) r);
+                t.start();
+
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -90,6 +98,11 @@ final class ChatServer {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+
+        private boolean writeMessage (String msg){
+
+            return true;
         }
     }
 }
