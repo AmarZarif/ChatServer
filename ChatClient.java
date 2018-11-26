@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.Scanner;
 
 final class ChatClient {
     private ObjectInputStream sInput;
@@ -16,6 +17,18 @@ final class ChatClient {
         this.server = server;
         this.port = port;
         this.username = username;
+    }
+
+    public ChatClient() {
+        this ("Anonymous");
+    }
+
+    public ChatClient(String username) {
+        this(username,1500);
+    }
+
+    public ChatClient(String username, int port) {
+        this(username,port,"localhost");
     }
 
     /*
@@ -83,8 +96,10 @@ final class ChatClient {
         ChatClient client = new ChatClient("localhost", 1500, "CS 180 Student");
         client.start();
 
+        Scanner s = new Scanner(System.in);
+
         // Send an empty message to the server
-        client.sendMessage(new ChatMessage());
+        client.sendMessage(new ChatMessage(0,"kol"));
     }
 
 
