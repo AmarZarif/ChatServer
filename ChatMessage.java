@@ -15,7 +15,6 @@ final class ChatMessage implements Serializable {
 
     private int type;
     private String message;
-    private String logoutMessage;
 
     public ChatMessage(int type, String message) {
         this.type = type;
