@@ -5,7 +5,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -30,19 +32,18 @@ final class ChatServer {
      * Right now it just creates the socketServer and adds a new ClientThread to a list to be handled
      */
     private void start() {
-
-            try {
-                ServerSocket serverSocket = new ServerSocket(port);
-                while (true) {
-                    Socket socket = serverSocket.accept();
-                    Runnable r = new ClientThread(socket, uniqueId++);
-                    Thread t = new Thread(r);
-                    clients.add((ClientThread) r);
-                    t.start();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
+        try {
+            ServerSocket serverSocket = new ServerSocket(port);
+            while (true) {
+                Socket socket = serverSocket.accept();
+                Runnable r = new ClientThread(socket, uniqueId++);
+                Thread t = new Thread(r);
+                clients.add((ClientThread) r);
+                t.start();
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /*
@@ -51,10 +52,30 @@ final class ChatServer {
      *  If the port number is not specified 1500 is used
      */
     public static void main(String[] args) {
-        ChatServer server = new ChatServer(1500);
+        ChatServer server;
+        if (args.length == 1)
+            server =  new ChatServer(Integer.parseInt(args[0]));
+        else
+            server = new ChatServer(1500);
         server.start();
     }
 
+    synchronized private void broadcast(String message) {
+        SimpleDateFormat time = new SimpleDateFormat("HH:mm:ss");
+        message = message + " - " + time.format(new Date());
+
+        for (int i = 0; i < clients.size(); i++) {
+            clients.get(i).writeMessage(message + '\n');
+        }
+        System.out.println(message);
+    }
+
+    synchronized private void remove(int id) {
+        for (int i = 0; i < clients.size(); i++) {
+            if (clients.get(i).id == id)
+                clients.remove(i);
+        }
+    }
 
     /*
      * This is a private class inside of the ChatServer
@@ -80,25 +101,51 @@ final class ChatServer {
             }
         }
 
+        private boolean writeMessage(String msg) {
+            if (!socket.isConnected()) {
+                System.out.println("Not connected");
+                return false;
+            }
+            try {
+                sOutput.writeObject(new ChatMessage(0, msg));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return true;
+        }
+
+
         /*
          * This is what the client thread actually runs.
          */
         @Override
         public void run() {
             // Read the username sent to you by client
-            try {
-                cm = (ChatMessage) sInput.readObject();
-            } catch (IOException | ClassNotFoundException e) {
-                e.printStackTrace();
+            while (true) {
+                try {
+                    cm = (ChatMessage) sInput.readObject();
+                } catch (IOException | ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+                //            System.out.println(username + ": Ping");
+                if (cm.getType() == 0) {
+                    broadcast(username + ": " + cm.getMessage());
+                } else {
+//                    broadcast(username + ": " + cm.getMessage());
+                    remove(this.id);
+                    close();
+                    break;
+                }
             }
-            System.out.println(username + ": Ping");
+        }
 
-
-            // Send message back to the client
+        private void close() {
             try {
-                sOutput.writeObject("Pong");
-            } catch (IOException e) {
-                e.printStackTrace();
+                socket.close();
+                sInput.close();
+                sOutput.close();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
             }
         }
     }
