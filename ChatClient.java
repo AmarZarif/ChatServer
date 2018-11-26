@@ -112,8 +112,18 @@ final class ChatClient {
                 }
                 System.exit(0);
 //                break;
-            } else
-                client.sendMessage(new ChatMessage(0,message));
+            } else if (message.toLowerCase().equals("/list")) {
+//                client.sendMessage(new ChatMessage());
+
+            } else if (message.length() > 3 && message.substring(0, 4).toLowerCase().equals("/msg")) {
+
+                String recipient = message.substring(message.indexOf(" ") + 1, message.lastIndexOf(" "));
+
+                String directMessage = message.substring(message.lastIndexOf(" ") + 1);
+                client.sendMessage(new ChatMessage(2, directMessage, recipient));
+            } else {
+                client.sendMessage(new ChatMessage(0, message));
+            }
 //            System.out.println(client.socket.isConnected());
         }
     }
@@ -132,7 +142,7 @@ final class ChatClient {
                     return;
                 }
                 try {
-                    String msg = ((ChatMessage)sInput.readObject()).getMessage();
+                    String msg = ((ChatMessage) sInput.readObject()).getMessage();
                     System.out.print(msg);
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
