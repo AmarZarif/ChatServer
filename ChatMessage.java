@@ -1,6 +1,12 @@
 
 import java.io.Serializable;
-
+/**
+ * ChatMessage - Project 4
+ *
+ * @author Muhammad Raziq Raif Ramli, mramli@purdue.edu
+ * @author Amar Zarif Azamin, aazamin@purdue.edu
+ * @version 11/26/2018
+ */
 final class ChatMessage implements Serializable {
     private static final long serialVersionUID = 6898543889087L;
 
@@ -16,7 +22,6 @@ final class ChatMessage implements Serializable {
         this.message = message;
     }
 
-
     public int getType() {
         return type;
     }
@@ -24,11 +29,5 @@ final class ChatMessage implements Serializable {
     public String getMessage() {
         return message;
     }
-
-    private void broadcast(String message){
-
-
-    }
-
 
 }
