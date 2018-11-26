@@ -72,7 +72,6 @@ final class ChatClient {
         }
     }
 
-
     /*
      * To start the Client use one of the following command
      * > java ChatClient
@@ -98,34 +97,25 @@ final class ChatClient {
             client = new ChatClient("localhost", 1500, "Anonymous");
         }
         client.start();
-        String s = "/fasdf";
-        System.out.println(s.toLowerCase());
         // Send an empty message to the server
+        Scanner scanner = new Scanner(System.in);
         while (true) {
-            Scanner scanner = new Scanner(System.in);
-            System.out.println("Enter a message: ");
             String message = scanner.nextLine();
             if (message.toLowerCase().equals("/logout")) {
+                client.sendMessage(new ChatMessage(1, message));
                 try {
                     client.socket.close();
-                } catch (IOException ioe) {
-                    System.out.println("IOExeption when closing socket");
-                }
-                try {
                     client.sInput.close();
-                } catch (IOException ioe) {
-                    System.out.println("IOExeption when closing Object Input Stream");
-                }
-                try {
                     client.sOutput.close();
                 } catch (IOException ioe) {
-                    System.out.println("IOExeption when closing Object Output Stream");
+                    ioe.printStackTrace();
                 }
-            }
-
-            client.sendMessage(new ChatMessage());
+                System.exit(0);
+//                break;
+            } else
+                client.sendMessage(new ChatMessage(0,message));
+//            System.out.println(client.socket.isConnected());
         }
-
     }
 
 
@@ -137,8 +127,12 @@ final class ChatClient {
     private final class ListenFromServer implements Runnable {
         public void run() {
             while (true) {
+                if (socket.isClosed()) {
+                    System.out.println("socket closed");
+                    return;
+                }
                 try {
-                    String msg = (String) sInput.readObject();
+                    String msg = ((ChatMessage)sInput.readObject()).getMessage();
                     System.out.print(msg);
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
