@@ -1,5 +1,7 @@
 
+
 import java.io.Serializable;
+
 /**
  * ChatMessage - Project 4
  *
@@ -15,10 +17,17 @@ final class ChatMessage implements Serializable {
 
     private int type;
     private String message;
+    private String recipient;
 
     public ChatMessage(int type, String message) {
         this.type = type;
         this.message = message;
+    }
+
+    public ChatMessage(int type, String message, String recipient) {
+        this.type = type;
+        this.message = message;
+        this.recipient = recipient;
     }
 
     public int getType() {
@@ -29,4 +38,7 @@ final class ChatMessage implements Serializable {
         return message;
     }
 
+    public String getRecipient() {
+        return recipient;
+    }
 }
