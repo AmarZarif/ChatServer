@@ -113,14 +113,14 @@ final class ChatClient {
                 System.exit(0);
 //                break;
             } else if (message.toLowerCase().equals("/list")) {
-//                client.sendMessage(new ChatMessage());
+                client.sendMessage(new ChatMessage(2,message));
 
             } else if (message.length() > 3 && message.substring(0, 4).toLowerCase().equals("/msg")) {
 
                 String recipient = message.substring(message.indexOf(" ") + 1, message.lastIndexOf(" "));
+                String directMessage = message.substring(message.lastIndexOf(recipient) + 1);
 
-                String directMessage = message.substring(message.lastIndexOf(" ") + 1);
-                client.sendMessage(new ChatMessage(2, directMessage, recipient));
+                client.sendMessage(new ChatMessage(3, directMessage, recipient));
             } else {
                 client.sendMessage(new ChatMessage(0, message));
             }
