@@ -1,6 +1,13 @@
 import java.io.*;
 import java.util.ArrayList;
 
+/**
+ * ChatClient - Project 4
+ *
+ * @author Muhammad Raziq Raif Ramli, mramli@purdue.edu
+ * @author Amar Zarif Azamin, aazamin@purdue.edu
+ * @version 11/26/2018
+ */
 public class ChatFilter {
 
     private ArrayList<String> badWordList = new ArrayList<String>();
