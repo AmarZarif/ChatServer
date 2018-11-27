@@ -1,7 +1,9 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.ConnectException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Scanner;
 
 /**
@@ -17,7 +19,7 @@ final class ChatClient {
     private Socket socket;
 
     private final String server;
-    private final String username;
+    private String username;
     private final int port;
 
     private ChatClient(String server, int port, String username) {
@@ -31,11 +33,20 @@ final class ChatClient {
      */
     private boolean start() {
         // Create a socket
-        try {
-            socket = new Socket(server, port);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        do {
+            try {
+                socket = new Socket(server, port);
+            } catch (ConnectException ce) {
+                System.out.println("Waiting for connection at port " + port + "...");
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } while (socket == null);
 
         // Create your input and output streams
         try {
@@ -48,7 +59,6 @@ final class ChatClient {
         // This thread will listen from the server for incoming messages
         Runnable r = new ListenFromServer();
         Thread t = new Thread(r);
-        t.start();
 
         // After starting, send the clients username to the server.
         try {
@@ -56,6 +66,7 @@ final class ChatClient {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        t.start();
 
         return true;
     }
@@ -67,6 +78,9 @@ final class ChatClient {
     private void sendMessage(ChatMessage msg) {
         try {
             sOutput.writeObject(msg);
+        } catch (SocketException se) {
+            System.out.println("Socket was closed. Exiting...");
+            System.exit(0);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -87,14 +101,25 @@ final class ChatClient {
         ChatClient client;
         // Get proper arguments and override defaults
         if (args.length == 3) {
-            // Create your client and start it
+            if (!args[0].matches("\\w")) {
+                System.out.println("You can only use alphanumeric characters for your username. Program exiting...");
+                return;
+            }
             client = new ChatClient(args[2], Integer.parseInt(args[1]), args[0]);
         } else if (args.length == 2) {
+            if (!args[0].matches("\\w")) {
+                System.out.println("You can only use alphanumeric characters for your username. Program exiting...");
+                return;
+            }
             client = new ChatClient("localhost", Integer.parseInt(args[1]), args[0]);
         } else if (args.length == 1) {
+            if (!args[0].matches("\\w")) {
+                System.out.println("You can only use alphanumeric characters for your username. Program exiting...");
+                return;
+            }
             client = new ChatClient("localhost", 1500, args[0]);
         } else {
-            client = new ChatClient("localhost", 1500, "Anonymous");
+            client = new ChatClient("localhost", 1500, "Anonymous_");
         }
         client.start();
         // Send an empty message to the server
@@ -113,14 +138,25 @@ final class ChatClient {
                 System.exit(0);
 //                break;
             } else if (message.toLowerCase().equals("/list")) {
-//                client.sendMessage(new ChatMessage());
+                client.sendMessage(new ChatMessage(2,message));
 
             } else if (message.length() > 3 && message.substring(0, 4).toLowerCase().equals("/msg")) {
+                String[] splittedMessage = message.split(" ");
+                String recipient = splittedMessage[1];
 
-                String recipient = message.substring(message.indexOf(" ") + 1, message.lastIndexOf(" "));
-
-                String directMessage = message.substring(message.lastIndexOf(" ") + 1);
-                client.sendMessage(new ChatMessage(2, directMessage, recipient));
+                if (recipient.equals(client.username)) {
+                    System.out.println("You cannot send a direct message to yourself.");
+                    continue;
+                }
+                if (splittedMessage.length == 2) {
+                    System.out.println("You entered an empty text for a direct message.");
+                    continue;
+                }
+                String directMessage = "";
+                for (int i = 2; i < splittedMessage.length; i++) {
+                    directMessage += splittedMessage[i] + " ";
+                }
+                client.sendMessage(new ChatMessage(3, directMessage, recipient));
             } else {
                 client.sendMessage(new ChatMessage(0, message));
             }
@@ -136,6 +172,31 @@ final class ChatClient {
      */
     private final class ListenFromServer implements Runnable {
         public void run() {
+            String testMessage = "";
+            try {
+                testMessage = ((ChatMessage) sInput.readObject()).getMessage();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+//            System.out.println(username);
+//            System.out.println(testMessage);
+            if (username.equals("Anonymous_"))
+                username = "Anonymous" + testMessage;
+//            System.out.println(username);
+            else if (testMessage.equals("DuplicateUsername")) {
+                try {
+                    socket.close();
+                    sInput.close();
+                    sOutput.close();
+                    System.out.println("You entered an existing username. Program exiting...");
+                    System.exit(0);
+                } catch (IOException ioe) {
+                    ioe.printStackTrace();
+                }
+            }
+//            System.out.println(username);
             while (true) {
                 if (socket.isClosed()) {
                     System.out.println("socket closed");
@@ -144,7 +205,9 @@ final class ChatClient {
                 try {
                     String msg = ((ChatMessage) sInput.readObject()).getMessage();
                     System.out.print(msg);
-                } catch (IOException | ClassNotFoundException e) {
+                } catch (SocketException se) {
+                    break;
+                }catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
                 }
             }
