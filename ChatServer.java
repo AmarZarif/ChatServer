@@ -1,10 +1,9 @@
-
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +19,7 @@ import java.util.List;
  */
 final class ChatServer {
     private static int uniqueId = 0;
+    private static int anonymousCounter = 1;
     private final List<ClientThread> clients = new ArrayList<>();
     private final int port;
 
@@ -35,12 +35,30 @@ final class ChatServer {
     private void start() {
         try {
             ServerSocket serverSocket = new ServerSocket(port);
+//            outerloop:
             while (true) {
                 Socket socket = serverSocket.accept();
                 Runnable r = new ClientThread(socket, uniqueId++);
                 Thread t = new Thread(r);
+                boolean isDuplicate = false;
+                for (int i = 0; i < clients.size(); i++) {
+                    if (clients.get(i).username.equals(((ClientThread) r).username)) {
+                        isDuplicate = true;
+                        ((ClientThread) r).writeMessage("DuplicateUsername");
+                        ((ClientThread) r).close();
+                        break;
+                    }
+                }
+                if (!isDuplicate && !((ClientThread) r).username.equals("Anonymous_")) {
+                    ((ClientThread) r).writeMessage("NotDuplicateUsername");
+                }
+                if (((ClientThread) r).username.equals("Anonymous_")) {
+                    ((ClientThread) r).writeMessage("" + (anonymousCounter));
+                    ((ClientThread) r).username = "Anonymous" + anonymousCounter++;
+                }
                 clients.add((ClientThread) r);
                 t.start();
+
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -113,24 +131,31 @@ final class ChatServer {
             }
             try {
                 sOutput.writeObject(new ChatMessage(0, msg));
+            } catch (SocketException se) {
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
             return true;
         }
 
-        private void directMessage(String message, String username) {
-
+        private void directMessage(String message, String recipientUsername) {
             SimpleDateFormat time = new SimpleDateFormat("HH:mm:ss");
             message = time.format(new Date()) + " " + username + ": " + message;
 
+            boolean recipientExists = false;
             for (ClientThread ct : clients) {
-                if (ct.username.equals(username)) {
+                if (ct.username.equals(recipientUsername)) {
+                    recipientExists = true;
                     ct.writeMessage(message + "\n");
                 }
             }
+            if (recipientExists)
+                this.writeMessage(message + "\n");
+            else {
+                this.writeMessage("You entered a non-existing recipient for direct message.\n");
+            }
         }
-
 
         /*
          * This is what the client thread actually runs.
@@ -141,6 +166,9 @@ final class ChatServer {
             while (true) {
                 try {
                     cm = (ChatMessage) sInput.readObject();
+                } catch (SocketException se) {
+//                    System.out.println(username + " has left.");
+                    break;
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -156,7 +184,11 @@ final class ChatServer {
                         if (ct.username == username) {
 
                             List<ClientThread> usernamesForList = new ArrayList<>(clients);
-                            usernamesForList.remove(id);
+
+                            for (int i = 0; i < usernamesForList.size(); i++) {
+                                if (usernamesForList.get(i).id == id)
+                                    usernamesForList.remove(i);
+                            }
 
                             String usernames = "";
 
@@ -172,7 +204,6 @@ final class ChatServer {
                 } else if (cm.getType() == 3) { //if its a DM
                     directMessage(cm.getMessage(), cm.getRecipient());
                 } else {
-
 //                    broadcast(username + ": " + cm.getMessage());
                     remove(this.id);
                     close();
@@ -186,6 +217,8 @@ final class ChatServer {
                 socket.close();
                 sInput.close();
                 sOutput.close();
+            } catch (SocketException se) {
+
             } catch (IOException ioe) {
                 ioe.printStackTrace();
             }
