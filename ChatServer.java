@@ -7,6 +7,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -54,7 +55,7 @@ final class ChatServer {
     public static void main(String[] args) {
         ChatServer server;
         if (args.length == 1)
-            server =  new ChatServer(Integer.parseInt(args[0]));
+            server = new ChatServer(Integer.parseInt(args[0]));
         else
             server = new ChatServer(1500);
         server.start();
@@ -62,11 +63,15 @@ final class ChatServer {
 
     synchronized private void broadcast(String message) {
         SimpleDateFormat time = new SimpleDateFormat("HH:mm:ss");
-        message = message + " - " + time.format(new Date());
 
+        message = time.format(new Date()) + " " + message;
+
+        //write message in each client thread
         for (int i = 0; i < clients.size(); i++) {
             clients.get(i).writeMessage(message + '\n');
         }
+
+        //write message in server
         System.out.println(message);
     }
 
@@ -114,6 +119,18 @@ final class ChatServer {
             return true;
         }
 
+        private void directMessage(String message, String username) {
+
+            SimpleDateFormat time = new SimpleDateFormat("HH:mm:ss");
+            message = time.format(new Date()) + " " + username + ": " + message;
+
+            for (ClientThread ct : clients) {
+                if (ct.username.equals(username)) {
+                    ct.writeMessage(message + "\n");
+                }
+            }
+        }
+
 
         /*
          * This is what the client thread actually runs.
@@ -127,10 +144,35 @@ final class ChatServer {
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
                 }
+
                 //            System.out.println(username + ": Ping");
                 if (cm.getType() == 0) {
+
                     broadcast(username + ": " + cm.getMessage());
+
+                } else if (cm.getType() == 2) { //if its a list message
+
+                    for (ClientThread ct : clients) {
+                        if (ct.username == username) {
+
+                            List<ClientThread> usernamesForList = new ArrayList<>(clients);
+                            usernamesForList.remove(id);
+
+                            String usernames = "";
+
+                            for (ClientThread ctd : usernamesForList) {
+                                usernames += ctd.username + "\n";
+                            }
+
+                            ct.writeMessage("USERS:\n" + usernames);
+
+                            break;
+                        }
+                    }
+                } else if (cm.getType() == 3) { //if its a DM
+                    directMessage(cm.getMessage(), cm.getRecipient());
                 } else {
+
 //                    broadcast(username + ": " + cm.getMessage());
                     remove(this.id);
                     close();
